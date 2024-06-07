@@ -1,0 +1,11 @@
+name: 'Yandex.Maps'
+type: module
+description: 'Elements for working with Yandex.Maps.'
+package: Other
+core_version_requirement: ^8 || ^9 || ^10 || ^11
+configure: yandex_maps.settings
+
+# Information added by Drupal.org packaging script on 2023-01-16
+version: '2.0.0'
+project: 'yandex_maps'
+datestamp: 1673912824

@@ -1,0 +1,11 @@
+{
+    "name": "drupal/yandex_maps",
+    "description": "Elements for working with Yandex.Maps.",
+    "type": "drupal-module",
+    "authors": [{
+        "name": "xandeadx",
+        "homepage": "http://xandeadx.ru"
+    }],
+    "license": "GPL-2.0+",
+    "minimum-stability": "dev"
+}

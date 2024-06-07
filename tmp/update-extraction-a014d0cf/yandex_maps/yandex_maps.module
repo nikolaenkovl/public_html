@@ -1,0 +1,235 @@
+<?php
+
+use Drupal\Core\Field\FieldItemListInterface;
+use Drupal\Core\Form\FormStateInterface;
+
+/**
+ * Implements hook_theme().
+ */
+function yandex_maps_theme($existing, $type, $theme, $path): array {
+  return [
+    'yandex_map' => [
+      'render element' => 'element',
+      'file' => 'yandex_maps.theme.inc',
+    ],
+  ];
+}
+
+/**
+ * Implements hook_library_info_build().
+ */
+function yandex_maps_library_info_build(): array {
+  $module_settings = \Drupal::config('yandex_maps.settings');
+
+  $api_params = [
+    'apikey' => $module_settings->get('api_key'),
+    'lang' => 'ru_RU',
+    'coordorder' => 'longlat',
+    // Fix bug at dynamic load library in ajax request
+    'onload' => 'Drupal.behaviors.yandexMaps.attach',
+  ];
+  if ($module_settings->get('debug_mode')) {
+    $api_params['mode'] = 'debug';
+  }
+
+  $libraries['main'] = [
+    // Js
+    'js' => [
+      'https://api-maps.yandex.ru/2.1/?' . http_build_query($api_params) => [
+        'type' => 'external',
+      ],
+    ],
+    // Css
+    'css' => [
+      'theme' => [
+        'css/yandex_maps.css' => [],
+      ],
+    ],
+    // Settings
+    'drupalSettings' => [
+      'yandexMaps' => [
+        'modulePath' => \Drupal::service('extension.list.module')->getPath('yandex_maps'),
+        'objectsDefaultPreset' => $module_settings->get('objects_default_preset'),
+      ],
+    ],
+    // Dependencies
+    'dependencies' => [
+      'core/jquery',
+      'core/once',
+      'core/drupal',
+    ],
+  ];
+
+  if ($presets_file_path = $module_settings->get('presets_file_path')) {
+    $presets_file_path = base_path() . $presets_file_path;
+    $libraries['main']['js'][$presets_file_path] = [];
+  }
+
+  $libraries['main']['js']['js/yandex-maps.js'] = [];
+
+  return $libraries;
+}
+
+/**
+ * Return map settings form.
+ *
+ * @TODO Move to trait (?)
+ */
+function yandex_maps_map_settings_form(array $form, FormStateInterface $form_state, $settings, $map_editable) {
+  $form['map_type'] = [
+    '#type' => 'select',
+    '#title' => t('Map type'),
+    '#options' => yandex_maps_get_map_types(),
+    '#default_value' => $settings['map_type'],
+  ];
+
+  $form['map_center'] = [
+    '#type' => 'textfield',
+    '#title' => t('Map center'),
+    '#description' => t('Map center coordinates: Longtitude,Latitude. Example: <code>37.62,55.75</code>. Leave empty if you want to use auto centering.'),
+    '#default_value' => $settings['map_center'],
+  ];
+
+  $form['map_zoom'] = [
+    '#type' => 'textfield',
+    '#title' => t('Map zoom level'),
+    '#description' => t('From 1 to 16'),
+    '#default_value' => $settings['map_zoom'],
+    '#size' => 5,
+  ];
+
+  $form['map_auto_centering'] = [
+    '#type' => 'checkbox',
+    '#title' => t('Auto centering map'),
+    '#description' => t('Check this if you want to use auto centering map.'),
+    '#default_value' => $settings['map_auto_centering'],
+  ];
+
+  $form['map_auto_zooming'] = [
+    '#type' => 'checkbox',
+    '#title' => t('Auto zooming map'),
+    '#description' => t('Check this if you want to use auto zooming map.'),
+    '#default_value' => $settings['map_auto_zooming'],
+  ];
+
+  $form['map_controls'] = [
+    '#type' => 'textfield',
+    '#title' => t('Map controls'),
+    '#description' => t('<a href="@url" target="_blank">Controls</a> through a comma, or controls set name. Use <code>&lt;none&gt;</code> to hide all controls. Example: <code>fullscreenControl,searchControl</code>. Default set name: <code>default</code>', [
+      '@url' => 'http://api.yandex.ru/maps/doc/jsapi/2.1/ref/reference/control.Manager.xml#add',
+    ]),
+    '#default_value' => $settings['map_controls'],
+  ];
+
+  $form['map_behaviors'] = [
+    '#type' => 'textfield',
+    '#title' => t('Map behaviors'),
+    '#description' => t('<a href="@url" target="_blank">Map behaviors</a> through a comma. Use <code>&lt;none&gt;</code> to disable all behaviors. Default value: <code>default</code>', [
+      '@url' => 'http://api.yandex.ru/maps/doc/jsapi/2.1/ref/reference/map.behavior.Manager.xml#param-behaviors',
+    ]),
+    '#default_value' => $settings['map_behaviors'] ?? 'default',
+  ];
+
+  $form['map_object_preset'] = [
+    '#type' => 'textfield',
+    '#title' => t('Objects preset'),
+    '#description' => t('<a href="@url" target="_blank">Preset name</a>. Example: <code>islands#blackDotIcon</code>', [
+      '@url' => 'http://api.yandex.ru/maps/doc/jsapi/2.1/ref/reference/option.presetStorage.xml',
+    ]),
+    '#default_value' => $settings['map_object_preset'],
+  ];
+
+  if ($map_editable) {
+    $form['map_object_types'] = [
+      '#type' => 'checkboxes',
+      '#title' => t('Supported object types'),
+      '#description' => t('Select object types that the user can add to the map'),
+      '#options' => [
+        'point' => t('Point'),
+        'line' => t('Line'),
+        'polygon' => t('Polygon'),
+      ],
+      '#default_value' => $settings['map_object_types'],
+    ];
+
+    $form['map_selected_control'] = [
+      '#type' => 'select',
+      '#title' => t('Default selected control'),
+      '#options' => [
+        '' => t('< none >'),
+        'point' => t('Point'),
+        'line' => t('Line'),
+        'polygon' => t('Polygon'),
+      ],
+      '#default_value' => $settings['map_selected_control'],
+    ];
+  }
+
+  return $form;
+}
+
+/**
+ * Return map types.
+ */
+function yandex_maps_get_map_types() {
+  return array(
+    'yandex#map'             => t('Roadmap'),
+    'yandex#satellite'       => t('Satelite'),
+    'yandex#hybrid'          => t('Hybrid'),
+    'yandex#publicMap'       => t('Public map'),
+    'yandex#publicMapHybrid' => t('Hybrid public map'),
+  );
+}
+
+/**
+ * Convert field items to GeoJSON array.
+ */
+function yandex_maps_convert_geofield_items_to_geojson(FieldItemListInterface $items) {
+  if ($items->isEmpty()) {
+    return [];
+  }
+
+  $features = [];
+  foreach ($items as $item) {
+    if ($item_value = $item->value) {
+      $geoms = geoPHP::load($item_value, 'wkt');
+
+      foreach (yandex_maps_split_objects($geoms) as $geom) {
+        $features[] = array(
+          'type' => 'Feature',
+          'geometry' => $geom->out('json', TRUE),
+        );
+      }
+    }
+  }
+
+  return $features ? [
+    'type' => 'FeatureCollection',
+    'features' => $features,
+  ] : [];
+}
+
+/**
+ * Split MultiType object to separate objects.
+ */
+function yandex_maps_split_objects(Geometry $geometry) {
+  $simplified_geometry_array = [];
+
+  if (in_array($geometry->geometryType(), ['GeometryCollection', 'MultiPoint', 'MultiLineString', 'MultiPolygon'])) {
+    foreach ($geometry->getComponents() as $component) {
+      $simplified_geometry_array = array_merge($simplified_geometry_array, yandex_maps_split_objects($component));
+    }
+  }
+  else {
+    $simplified_geometry_array = [$geometry];
+  }
+
+  return $simplified_geometry_array;
+}
+
+/**
+ * Encode GeoJSON array.
+ */
+function yandex_maps_encode_geojson(array $geojson_array) {
+  return json_encode($geojson_array, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+}

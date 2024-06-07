@@ -1,0 +1,23 @@
+yandex_maps_examples.theme:
+  path: '/yandex-maps-examples/theme'
+  defaults:
+    _controller: '\Drupal\yandex_maps_examples\Controller\YandexMapsExamplesController::themeExample'
+    _title: 'Yandex.Maps theme example'
+  requirements:
+    _permission: 'access content'
+
+yandex_maps_examples.theme.clusterize:
+  path: '/yandex-maps-examples/theme/clusterize'
+  defaults:
+    _controller: '\Drupal\yandex_maps_examples\Controller\YandexMapsExamplesController::themeClusterizeExample'
+    _title: 'Yandex.Maps clusterize example'
+  requirements:
+    _permission: 'access content'
+
+yandex_maps_examples.form:
+  path: '/yandex-maps-examples/form'
+  defaults:
+    _form: '\Drupal\yandex_maps_examples\Form\YandexMapsExampleForm'
+    _title: 'Yandex.Maps form example'
+  requirements:
+    _permission: 'access content'

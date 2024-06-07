@@ -1,0 +1,5 @@
+yandex_maps.settings:
+  title: 'Yandex.Maps'
+  description: 'Settings for Yandex.Maps module.'
+  parent: system.admin_config_system
+  route_name: yandex_maps.settings

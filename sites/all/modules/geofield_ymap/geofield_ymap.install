@@ -1,0 +1,24 @@
+<?php
+
+/**
+ * Implements hook_uninstall().
+ */
+function geofield_ymap_uninstall() {
+  $vars = array(
+    'geofield_ymap_presets_path',
+    'geofield_ymap_object_preset',
+    'geofield_ymap_use_loader',
+    'geofield_ymap_debug_mode',
+  );
+  foreach ($vars as $var) {
+    variable_del($var);
+  }
+}
+
+/**
+ * Rename a persistent variable after refactoring.
+ */
+function geofield_ymap_update_7100() {
+  variable_set('geofield_ymap_object_preset', variable_get('geofield_ymap_preset', ''));
+  variable_del('geofield_ymap_preset');
+}

@@ -1,0 +1,7 @@
+yandex_maps.settings:
+  path: '/admin/config/system/yandex-maps'
+  defaults:
+    _form: '\Drupal\yandex_maps\Form\YandexMapsSettingsForm'
+    _title: 'Yandex.Maps settings'
+  requirements:
+    _permission: 'administer site configuration'
